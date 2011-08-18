@@ -1,0 +1,8 @@
+{
+  "name": "my_rest_proj",
+  "version": "0.0.1",
+  "dependencies": {
+	"express" : "2.2.0",
+	"jade": "0.14.2"
+  }
+}
