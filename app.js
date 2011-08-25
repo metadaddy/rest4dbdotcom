@@ -37,15 +37,7 @@ app.get('/', function(req, res) {
 });
 
 app.get('/accounts', function(req, res) {
-    rest.api({
-        oauth: req.oauth,
-        refresh: function(callback) {
-	        oauth.refresh({
-	            oauth: req.oauth,
-	            callback: callback
-	        });            
-        }
-    }).query("Select Id, Name From Account", function(data) {
+    rest.api(req).query("Select Id, Name From Account", function(data) {
 			res.render("accounts", { accounts:data.records } );
 	});
 });
@@ -73,21 +65,17 @@ app.post('/save', function(req, res) {
 });
 
 app.get('/test', function(req, res) {
-    var api = rest.api({
-        oauth: req.oauth,
-        refresh: function(callback) {
-	        oauth.refresh({
-	            oauth: req.oauth,
-	            callback: callback
-	        });            
-        }
-    });
+    // More efficient to get the API object once if we're doing many 
+    // interactions
+    var api = rest.api(req);
 	var id;
 	res.write('creating account\n\n');
 	api.create('account', {'name':'xxtestxx'}, function(data){
 		console.log(data);
 		res.write('success: '+JSON.stringify(data)+'\n\n');
 		id = data.id;
+		// Test refresh by stomping on the access token
+		req.oauth.access_token = 'deadbeef';
     	res.write('retrieving account\n\n');
     	api.retrieve('account', id, ['name'], function(data){
     		console.log(data);

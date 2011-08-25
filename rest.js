@@ -1,4 +1,5 @@
 var rest = require('restler');
+var oauth = require('./oauth.js');
 
 function request(options) {
 	// TODO - API version
@@ -12,7 +13,6 @@ function request(options) {
 	        'Accept':'application/json',
 	        'Authorization':'OAuth ' + options.oauth.access_token,
 	        'Content-Type': 'application/json',
-	        'Content-Length': (options.data) ? options.data.length : undefined
 	    }
     }).on('complete', function(data, response) {
         if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -28,11 +28,13 @@ function request(options) {
 		  if (response.statusCode == 401) {
 		      // Session expired or invalid
 		      if ( options.retry || ! options.refresh ) {
+		          console.log("Invalid session - we tried!");
 		          // We already tried, or there is no refresh callback
 		          options.error(data, response);
 		      } else {
 		          // We use a refresh callback from options to decouple
 		          // rest from oauth
+		          console.log("Invalid session - trying a refresh");
 		          options.refresh(function(oauth){
 		              options.oauth.access_token = oauth.access_token;
         		      options.retry = true;
@@ -42,28 +44,20 @@ function request(options) {
 		  }
 	});
 }
-exports.api = function api(req, fn) {
-	return restapi({
-      oauth: req.oauth,
-      refresh: (fn ? fn : function(callback) {
-        oauth.refresh({
-            oauth: req.oauth,
-            callback: callback
-        });            
-      })
-  });
-}
-function restapi(options) {
+
+function makeAPI(options) {
     var apiVersion = options.apiVersion || '22.0';
     var oauth = options.oauth;
+    var refresh = options.refresh;
     
     return {
         versions: function versions(callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
         	request(options);
         },
@@ -71,6 +65,7 @@ function restapi(options) {
         resources: function resources(callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/',
         		callback: callback,
         		error: error,
@@ -81,6 +76,7 @@ function restapi(options) {
         describeGlobal: function describeGlobal(callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/',
         		callback: callback,
         		error: error,
@@ -91,6 +87,7 @@ function restapi(options) {
         metadata: function metadata(objtype, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/',
         		callback: callback,
         		error: error,
@@ -101,6 +98,7 @@ function restapi(options) {
         describe: function describe(objtype, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/describe/',
         		callback: callback,
         		error: error,
@@ -111,6 +109,7 @@ function restapi(options) {
         create: function create(objtype, fields, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/',
         		callback: callback,
         		error: error,
@@ -121,9 +120,16 @@ function restapi(options) {
         },
         
         retrieve: function retrieve(objtype, id, fields, callback, error) {
-					var f = (fields == null ? '' : '?fields=' + fields);
+            if (typeof fields === 'function') {
+                // fields param missing
+                error = callback;
+                callback = fields;
+                fields = null;
+            }
+
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id
                     + (fields ? '?fields=' + fields : ''),
         		callback: callback,
@@ -135,6 +141,7 @@ function restapi(options) {
         upsert: function upsert(objtype, externalIdField, externalId, fields, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + externalIdField + '/' + externalId,
         		callback: callback,
         		error: error,
@@ -147,6 +154,7 @@ function restapi(options) {
         update: function update(objtype, id, fields, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id,
         		callback: callback,
         		error: error,
@@ -159,6 +167,7 @@ function restapi(options) {
         del: function del(objtype, id, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id,
         		callback: callback,
         		error: error,
@@ -170,6 +179,7 @@ function restapi(options) {
         search: function search(sosl, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/search/?q=' + escape(sosl),
         		callback: callback,
         		error: error
@@ -180,6 +190,7 @@ function restapi(options) {
         query: function query(soql, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/query/?q=' + escape(soql),
         		callback: callback,
         		error: error
@@ -190,6 +201,7 @@ function restapi(options) {
         recordFeed: function recordFeed(id, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/chatter/feeds/record/' + id + '/feed-items',
         		callback: callback,
         		error: error,
@@ -200,6 +212,7 @@ function restapi(options) {
         newsFeed: function newsFeed(id, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/chatter/feeds/news/' + id + '/feed-items',
         		callback: callback,
         		error: error,
@@ -210,6 +223,7 @@ function restapi(options) {
         profileFeed: function profileFeed(id, callback, error) {
         	var options = {
         	    oauth: oauth,
+        		refresh: refresh,
         		path: '/v' + apiVersion + '/chatter/feeds/user-profile/' + id + '/feed-items',
         		callback: callback,
         		error: error,
@@ -218,3 +232,24 @@ function restapi(options) {
         }        
     };
 };
+
+// token can be an oauth object (with access_token etc properties), an object
+// with an oauth property, or a string containing an access token
+exports.api = function api(token, refresh) {
+    var oauthObj;
+    
+    oauthObj = (token.access_token) ? 
+        token : 
+        (token.oauth || { access_token: token });
+    
+    return makeAPI({
+        oauth: oauthObj,
+        refresh: refresh || function(callback) {
+            oauth.refresh({
+                oauth: oauthObj,
+                callback: callback
+            });            
+        }
+    });
+}
+
