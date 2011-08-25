@@ -11,6 +11,7 @@ exports.refresh = function refresh(options) {
         },
     }).on('complete', function(data, response) {
       if (response.statusCode == 200) {
+          console.log('refreshed: '+data.access_token);
           options.callback(data);
       }
     }).on('error', function(e) {
@@ -27,8 +28,8 @@ exports.oauth = function oauth(options) {
     return function oauth(req, res, next){
         console.log('oauth');
         console.log('url :'+req.url);
-        if (req.session.oauth) {
-            // We're done
+        if (req.session && req.session.oauth) {
+            // We're done - decorate the request with the oauth object
             req.oauth = req.session.oauth;
             req.oauth.loginServer = loginServer;
             req.oauth.clientId = clientId;
@@ -52,19 +53,26 @@ exports.oauth = function oauth(options) {
                 req.session.oauth = data;
                 state = req.session.oauth_state;
                 delete req.session.oauth_state;
+                console.log('oauth done - redirecting to '+state);
         		res.redirect(state);
               }
             }).on('error', function(e) {
     			  console.error(e);
     		});
         } else {
-            // We have nothing - redirect to the Authorization Server
-            req.session.oauth_state = req.url;
-    	    var oauthURL = loginServer + "/services/oauth2/authorize?response_type=code&" +
-    	        "client_id=" + clientId + "&redirect_uri=" + redirectUri + "&display=touch";
-            console.log('redirecting: '+oauthURL);
-    		res.redirect(oauthURL);  // Redirect to salesforce.com
-    		res.end();            
+            // Test for req.session - browser requests favicon.ico but doesn't
+            // bother sending cookie?
+            if ( req.session ) {
+                // We have nothing - redirect to the Authorization Server
+                req.session.oauth_state = req.url;
+        	    var oauthURL = loginServer + "/services/oauth2/authorize?response_type=code&" +
+        	        "client_id=" + clientId + "&redirect_uri=" + redirectUri + "&display=touch";
+                console.log('redirecting: '+oauthURL);
+        		res.redirect(oauthURL);  // Redirect to salesforce.com
+        		res.end();
+    		} else {
+    		    next();
+    		}
         }
     };
 };
