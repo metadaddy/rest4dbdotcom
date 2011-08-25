@@ -1,15 +1,18 @@
 var express = require('express');
-var app = express.createServer();
 var rest = require('./rest.js');
+var oauth = require('./oauth.js');
+var app = express.createServer(
+    express.cookieParser(),
+    express.session({ secret: process.env.CLIENT_SECRET }),
+    express.query(),
+    oauth.oauth({
+        clientId: process.env.CLIENT_ID,
+        clientSecret: process.env.CLIENT_SECRET,
+        loginServer: process.env.LOGIN_SERVER,
+        redirectUri: process.env.REDIRECT_URI
+    })
+);
 
-rest.setOptions({
-	clientId:"3MVG9yZ.WNe6byQDx8PTnyUjr2a4a.OdYg93iPmUozOXRFqA66C29hNnaZX737QieXbbiK.OIeeq2vPuFFWQN",
-	redirectUri:"https://syds.herokuapp.com/token",
-	version:"22.0",
-	clientSecret: "947286122166300729",
-	hostApp:app
-	});
-		
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
 
@@ -24,16 +27,67 @@ app.get('/', function(req, res) {
 });
 
 app.get('/accounts', function(req, res) {
-	//rest.resources(req, res, function(data){ console.log(data);});
-	rest.query("Select Id, Name From Account", req, res, function(data) {
+    var api = rest.api({
+        oauth: req.oauth,
+        refresh: function(callback) {
+	        oauth.refresh({
+	            oauth: options.oauth,
+	            callback: callback
+	        });            
+        }
+    });
+	api.query("Select Id, Name From Account", function(data) {
 		for (var i=0;i<data.records.length; i++) {
 			console.log(data.records[i].Name);
 			res.write(data.records[i].Name + "\n");
 		};
-		res.write("dood");
 		res.end();
 	});
 });
 
-app.listen(process.env.PORT || 4000);
-console.log("listening on port " + process.env.PORT || 4000);
+app.get('/test', function(req, res) {
+    var api = rest.api({
+        oauth: req.oauth,
+        refresh: function(callback) {
+	        oauth.refresh({
+	            oauth: options.oauth,
+	            callback: callback
+	        });            
+        }
+    });
+	var id;
+	res.write('creating account\n\n');
+	api.create('account', {'name':'xxtestxx'}, function(data){
+		console.log(data);
+		res.write('success: '+JSON.stringify(data)+'\n\n');
+		id = data.id;
+    	res.write('retrieving account\n\n');
+    	api.retrieve('account', id, ['name'], function(data){
+    		console.log(data);
+    		res.write('success: '+JSON.stringify(data)+'\n\n');
+        	res.write('deleting account\n\n');
+        	api.del('account', id, function(data){
+        		console.log(data);
+        		res.write('success: '+JSON.stringify(data)+'\n\n');
+        		res.end();	    
+        	}, function(data, response){
+        		console.log(data);
+        		res.write('error: '+JSON.stringify(data)+'\n\n');
+        		res.end();	    
+        	});		
+    	}, function(data, response){
+    		console.log(data);
+    		res.write('error: '+JSON.stringify(data)+'\n\n');
+    		res.end();	    
+    	});		
+	}, function(data, response){
+		console.log(data);
+		res.write('error: '+JSON.stringify(data)+'\n\n');
+		res.end();	    
+	});
+});
+
+var port = process.env.PORT || 4000;
+
+app.listen(port);
+console.log("listening on port " + port);

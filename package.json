@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
 	"express" : "2.2.0",
-	"jade": "0.14.2"
+	"jade": "0.14.2",
+	"restler": "0.2.1"
   }
 }
