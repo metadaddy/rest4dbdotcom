@@ -5,8 +5,8 @@ var url = require('url');
 
 var port = process.env.PORT || 4000;
 
-var cid = process.env.CLIENT_ID || "3MVG9yZ.WNe6byQDx8PTnyUjr2a4a.OdYg93iPmUozOXRFqA66C29hNnaZX737QieXbbiK.OIeeq2vPuFFWQN";
-var csecr = process.env.CLIENT_SECRET || "947286122166300729";
+var cid = process.env.CLIENT_ID || "";
+var csecr = process.env.CLIENT_SECRET || "";
 var lserv = process.env.LOGIN_SERVER || "https://login.salesforce.com";
 var redir = process.env.REDIRECT_URI || "http://localhost:" + port + "/token";
 
