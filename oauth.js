@@ -52,7 +52,7 @@ exports.oauth = function oauth(options) {
                 req.session.oauth = data;
                 state = req.session.oauth_state;
                 delete req.session.oauth_state;
-        		res.redirect(state);
+        				res.redirect(state);
               }
             }).on('error', function(e) {
     			  console.error(e);

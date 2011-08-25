@@ -1,0 +1,6 @@
+html
+	head
+	ul
+		- each acct in accounts 
+			li 
+				a(href='/detail?id=#{acct.Id}')= acct.Name

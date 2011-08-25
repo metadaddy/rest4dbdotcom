@@ -1,0 +1,20 @@
+html
+	head
+		form(action='/save', method='POST')
+			#maincontent(style='margin-left: auto; margin-right: auto; font-family: arial; font-size: 24px; width: 400px;')
+				input(type='hidden', value='#{account.Id}', id='id', name='id')
+				#accountdiv Name:
+					#accountNameContainer(style="color: white; padding: 8px; top: -28px; left: 105px; position: relative; background-color: gray; border-radius: 8px")
+						input(type='text', value='#{account.Name}', id='name', name='name')
+				#content
+					#accountdiv(style='font-family: arial; font-size: 24px;') Address:
+						#accountContainer(style="color: white; padding: 8px; top: -28px; left: 105px; position: relative; background-color: gray; border-radius: 8px")
+							span Street:
+							input(type='text', value='#{account.BillingStreet}', name='street', style='position: relative; left: 10px')
+							br
+							span City:
+							input(type='text', value='#{account.BillingCity}', name='city', style='position: relative; left: 33px')
+							br
+							span State:
+							input(type='text', value='#{account.BillingState}', name='state', style='position: relative; left: 18px')
+				input(type='submit', value='Save' )

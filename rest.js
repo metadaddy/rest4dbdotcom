@@ -42,8 +42,18 @@ function request(options) {
 		  }
 	});
 }
-
-exports.api = function api(options) {
+exports.api = function api(req, fn) {
+	return restapi({
+      oauth: req.oauth,
+      refresh: (fn ? fn : function(callback) {
+        oauth.refresh({
+            oauth: req.oauth,
+            callback: callback
+        });            
+      })
+  });
+}
+function restapi(options) {
     var apiVersion = options.apiVersion || '22.0';
     var oauth = options.oauth;
     
@@ -111,10 +121,11 @@ exports.api = function api(options) {
         },
         
         retrieve: function retrieve(objtype, id, fields, callback, error) {
+					var f = (fields == null ? '' : '?fields=' + fields);
         	var options = {
         	    oauth: oauth,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id
-                    + '?fields=' + fields,
+                    + (fields ? '?fields=' + fields : ''),
         		callback: callback,
         		error: error,
         	}
