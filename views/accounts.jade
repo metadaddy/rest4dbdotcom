@@ -1,5 +1,7 @@
 html
 	head
+	h3= "Welcome " + user.display_name
+	input(type='button', value='New Account', onclick='document.location.href="/edit"')
 	ul
 		- each acct in accounts 
 			li 

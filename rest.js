@@ -1,9 +1,10 @@
 var rest = require('restler');
 var oauth = require('./oauth.js');
 
-function request(options) {
+exports.request = function request(options) {
 	// TODO - API version
-	var restUrl = options.oauth.instance_url + '/services/data' + options.path;
+	// Handle a fully qualified path (for id url) versus relative path
+	var restUrl = (options.path.substr(0, 6) == "https:" ? options.path : options.oauth.instance_url + '/services/data' + options.path);
 	console.log("\n\nrest.request - method: " + options.method + " restUrl: " + restUrl + ", data: " + options.data);
 	
 	rest.request(restUrl, {
@@ -43,13 +44,25 @@ function request(options) {
 		      }
 		  }
 	});
-}
+};
 
-function makeAPI(options) {
-    var apiVersion = options.apiVersion || '22.0';
-    var oauth = options.oauth;
-    var refresh = options.refresh;
-    
+// token can be an oauth object (with access_token etc properties), an object
+// with an oauth property (like a request), or a string containing an access token
+exports.api = function api(token, refresh, apiVersion) {
+    var oauth = (token.access_token) ? 
+        token : 
+        (token.oauth || { access_token: token });
+
+    refresh = refresh || function(callback) {
+          oauth.refresh({
+              oauth: oauthObj,
+              callback: callback
+          });            
+      }
+
+  
+    apiVersion = apiVersion || '22.0';
+
     return {
         versions: function versions(callback, error) {
         	var options = {
@@ -59,7 +72,7 @@ function makeAPI(options) {
         		callback: callback,
         		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
 
         resources: function resources(callback, error) {
@@ -68,44 +81,55 @@ function makeAPI(options) {
         		refresh: refresh,
         		path: '/v' + apiVersion + '/',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         describeGlobal: function describeGlobal(callback, error) {
         	var options = {
         	    oauth: oauth,
         		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
+				identity: function identity(callback, error) {
+					var options = {
+						oauth:oauth,
+						refresh:refresh,
+						path:oauth.id,
+						callback:callback,
+						error:error
+					}
+					exports.request(options);
+				},
+
         metadata: function metadata(objtype, callback, error) {
         	var options = {
         	    oauth: oauth,
         		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         describe: function describe(objtype, callback, error) {
         	var options = {
         	    oauth: oauth,
         		refresh: refresh,
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/describe/',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         create: function create(objtype, fields, callback, error) {
         	var options = {
         	    oauth: oauth,
@@ -116,9 +140,9 @@ function makeAPI(options) {
         		method: 'POST',
         		data: JSON.stringify(fields)
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         retrieve: function retrieve(objtype, id, fields, callback, error) {
             if (typeof fields === 'function') {
                 // fields param missing
@@ -133,24 +157,24 @@ function makeAPI(options) {
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id
                     + (fields ? '?fields=' + fields : ''),
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         upsert: function upsert(objtype, externalIdField, externalId, fields, callback, error) {
         	var options = {
-        	    oauth: oauth,
+						oauth: oauth,
         		refresh: refresh,
-        		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + externalIdField + '/' + externalId,
+						path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + externalIdField + '/' + externalId,
         		callback: callback,
         		error: error,
         		method: 'PATCH',
         		data: JSON.stringify(fields)
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         update: function update(objtype, id, fields, callback, error) {
         	var options = {
         	    oauth: oauth,
@@ -161,9 +185,9 @@ function makeAPI(options) {
         		method: 'PATCH',
         		data: JSON.stringify(fields)
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         del: function del(objtype, id, callback, error) {
         	var options = {
         	    oauth: oauth,
@@ -171,11 +195,11 @@ function makeAPI(options) {
         		path: '/v' + apiVersion + '/sobjects/' + objtype + '/' + id,
         		callback: callback,
         		error: error,
-        		method: 'DELETE',
+        		method: 'DELETE'
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         search: function search(sosl, callback, error) {
         	var options = {
         	    oauth: oauth,
@@ -184,9 +208,9 @@ function makeAPI(options) {
         		callback: callback,
         		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         query: function query(soql, callback, error) {
         	var options = {
         	    oauth: oauth,
@@ -195,61 +219,41 @@ function makeAPI(options) {
         		callback: callback,
         		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
+
         recordFeed: function recordFeed(id, callback, error) {
         	var options = {
         	    oauth: oauth,
         		refresh: refresh,
         		path: '/v' + apiVersion + '/chatter/feeds/record/' + id + '/feed-items',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         },
-        
-        newsFeed: function newsFeed(id, callback, error) {
-        	var options = {
-        	    oauth: oauth,
-        		refresh: refresh,
-        		path: '/v' + apiVersion + '/chatter/feeds/news/' + id + '/feed-items',
-        		callback: callback,
-        		error: error,
-        	}
-        	request(options);
-        },
-        
+
+        newsFeed:  function   newsFeed(id,  callback,  error)   {  
+					var  options   =  {  
+						oauth:   oauth,  
+						refresh:refresh,  
+						path:   '/v'  +   apiVersion  +   '/chatter/feeds/news/'  +   id  +   '/feed-items',  
+						callback:callback,             
+						error:error            
+					}
+					exports.request(options);             
+				},
+
         profileFeed: function profileFeed(id, callback, error) {
         	var options = {
         	    oauth: oauth,
         		refresh: refresh,
         		path: '/v' + apiVersion + '/chatter/feeds/user-profile/' + id + '/feed-items',
         		callback: callback,
-        		error: error,
+        		error: error
         	}
-        	request(options);
+        	exports.request(options);
         }        
     };
 };
-
-// token can be an oauth object (with access_token etc properties), an object
-// with an oauth property, or a string containing an access token
-exports.api = function api(token, refresh) {
-    var oauthObj;
-    
-    oauthObj = (token.access_token) ? 
-        token : 
-        (token.oauth || { access_token: token });
-    
-    return makeAPI({
-        oauth: oauthObj,
-        refresh: refresh || function(callback) {
-            oauth.refresh({
-                oauth: oauthObj,
-                callback: callback
-            });            
-        }
-    });
-}
 
