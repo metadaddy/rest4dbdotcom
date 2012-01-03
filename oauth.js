@@ -16,7 +16,7 @@ exports.refresh = function refresh(options) {
       }
     }).on('error', function(e) {
 		  console.error(e);
-	});    
+		});    
 }
 
 exports.oauth = function oauth(options) {

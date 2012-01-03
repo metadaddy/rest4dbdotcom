@@ -1,0 +1,17 @@
+html
+	head
+	
+	#maincontent(style='margin-left: auto; margin-right: auto; font-family: arial; font-size: 24px; width: 400px;')
+		#accountdiv Name:
+			#accountNameContainer(style="color: white; padding: 8px; top: -28px; left: 105px; position: relative; background-color: gray; border-radius: 8px")
+				span= account.Name
+		#content
+			#accountdiv(style='font-family: arial; font-size: 24px;') Address:
+				#accountContainer(style="color: white; padding: 8px; top: -28px; left: 105px; position: relative; background-color: gray; border-radius: 8px")
+					span= account.BillingStreet
+					br
+					span= account.BillingCity
+					br
+					span= account.BillingState
+		input(type='button', class='button', value='Edit', onclick='document.location="/edit?id=#{account.Id}"')
+		input(type='button', value='List', onclick='document.location="/accounts?method=query"')
